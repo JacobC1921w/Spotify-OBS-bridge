@@ -1,0 +1,15 @@
+{
+  "name": "spotifyobsbridge",
+  "version": "1.0.0",
+  "description": "Show spotify information on stream!",
+  "license": "MIT",
+  "author": "JacobC1921",
+  "type": "commonjs",
+  "main": "lyric2serial-server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
