@@ -17,7 +17,7 @@ You can follow the installation for spicetify [here](https://spicetify.app/docs/
 iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1 | iex
 ```
 
-Make sure to select Yes when asked to install the marketplace. Close this powershell window for now.
+~~Make sure to select Yes when asked to install the marketplace.~~ Installing the marketplace is optional, depending on if you want to add themes or other extensions for spotify easily! Close this powershell window for now.
 
 ### 2. Downloading and applying the extension
 3. Download the repository as a zip file (here)[https://github.com/JacobC1921w/Spotify-OBS-bridge/archive/refs/heads/main.zip] (or clone it), extract it somewhere (doesn't matter where, just remember the location) and place the `SOBSB-ext.js` file into `%appdata%/spicetify/Extensions`, so it should look like this:
