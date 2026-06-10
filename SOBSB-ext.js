@@ -1,36 +1,38 @@
-
-(async function lyric2serial() {
+(async function SOBSB() {
     const { Platform, Player } = Spicetify;
 
-    // Don't do anything for 300ms if Spotify isn't ready
+    // We want to make sure the player and platform are ready for us
     if (!Player || !Platform) {
-        setTimeout(lyric2serial, 300);
+        setTimeout(SOBSB, 300);
         return;
     }
     
-    //region Variables
-    // Initialize some variables
+    //region Websocket setup
+    const ws = new WebSocket("ws://127.0.0.1:5005/ws");
+    let wsReady = false;
+
+    ws.onopen = () => { wsReady = true; };
+    ws.onclose = () => { wsReady = false; };
+    //endregion Websocket setup
+
+    //region Variable decs
     let currentLyrics = [];
-    let lastLyric;
+    let lastLyricIndex = -1;
     
-    let artist;
-    let album;
-    let albumCover;
-    let track;
-    let currentLyric;
-    let previousLyric;
-    let nextLyric;
-    let progress;
-    let trackLength;
-    //endregion Variables
+    let artist, album, albumCover, track, trackLength;
+    //endregion Variable decs
 
-    //region Main program logic
+    //region Song change listener
     Player.addEventListener("songchange", async () => {
-        // Set some variables for data supplied by spicetify
         const data = Spicetify.Player.data.item;
-        const query = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(data.artists[0].name)}&track_name=${encodeURIComponent(data.name)}`; // Synced lyric URL
+        if (!data) return;
 
+        // We use lrclib for timestamped lyrics :)
+        const query = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(data.artists[0].name)}&track_name=${encodeURIComponent(data.name)}`;
+
+        // Various variables
         currentLyrics = [];
+        lastLyricIndex = -1;
         artist = data.artists[0].name;
         album = data.album.name;
         albumCover = "https://i.scdn.co/image/" + data.album.images[0].url.slice(14);
@@ -39,67 +41,87 @@
         
         try {
             const res = await fetch(query);
-            // TODO - check if response is ok
             const json = await res.json();
-            // Parse syncedLyrics into an array of {time, text} by iterating through each line
-            let currentLyricsArray = json.syncedLyrics.split('\n');
-            for (lyric of currentLyricsArray) {
-                let timestamp = lyric.substring((lyric.indexOf('[') + 1), (lyric.indexOf(']')));
+            
+            //region Lyric parsing
+            // This is just seperating the json data from lrclib, and making a multidimensional array for lyric and timestamp
+            if (json && json.syncedLyrics) {
+                const currentLyricsArray = json.syncedLyrics.split('\n');
+                const parsedLyrics = [];
 
-                const [minutes, seconds, ms] = timestamp.split(/[:.]/);
-                timestamp = (parseInt(minutes) * 60000) + (parseInt(seconds) * 1000) + (parseInt((ms || '0').padEnd(3, '0')));
+                for (const line of currentLyricsArray) {
+                    if (!line.trim()) continue;
+                    
+                    const openBracket = line.indexOf('[');
+                    const closeBracket = line.indexOf(']');
+                    if (openBracket === -1 || closeBracket === -1) continue;
 
-                lyric = lyric.substring((lyric.indexOf(']') + 1), lyric.length).trim();
+                    let timestampStr = line.substring(openBracket + 1, closeBracket);
+                    const [minutes, seconds, ms] = timestampStr.split(/[:.]/);
+                    const timestamp = (parseInt(minutes, 10) * 60000) + 
+                                      (parseInt(seconds, 10) * 1000) + 
+                                      (parseInt((ms || '0').padEnd(3, '0'), 10));
 
-                currentLyrics.push([timestamp, lyric]);
+                    const lyricText = line.substring(closeBracket + 1).trim();
+                    parsedLyrics.push([timestamp, lyricText]);
+                }
+                currentLyrics = parsedLyrics;
             }
-        } catch {
+        } catch (e) {
             currentLyrics = [[0, "Couldn't find lyrics :p"]];
         }
+        //endregion Lyric parsing
     });
-    //endregion Main program logic
+    //endregion Song change listener
 
-    //region Request section
-    setInterval(() => {
-        if (!currentLyrics.length) return; // Don't do anything if there's no lyrics
-        progress = Player.getProgress();
+    //region Progress listener
+    Player.addEventListener("onprogress", (event) => {
+        if (!currentLyrics.length || !wsReady) return;
 
-        // If we haven't encountered any lyrics yet, just send through some basic information first
+        // Without this there is considerable lag between whats display on the widget and whats being sung in the song
+        const APILagCompensation = 200;
+        const progress = event.data + APILagCompensation;
+        
         if (progress < currentLyrics[0][0]) {
-            sendRequest(artist, album, albumCover, track, '♪', '♪', currentLyrics[0][1], progress, trackLength);
-        } else {
-            // Find the next lyric (cool!)
-            const currentIndex = currentLyrics.findLastIndex(item => item[0] <= progress);
-
-            if (currentIndex !== -1) {
-                const match = currentLyrics[currentIndex];
-                
-                // Replace null lyrics with a nice music symbol like spotify does
-                currentLyric = isEmptyOrWhiteSpace(match[1]) ? '♪' : match[1];
-                
-                const prevMatch = currentLyrics[currentIndex - 1];
-                previousLyric = (!prevMatch || isEmptyOrWhiteSpace(prevMatch[1])) ? '♪' : prevMatch[1];
-
-                const nextMatch = currentLyrics[currentIndex + 1];
-                nextLyric = (!nextMatch || isEmptyOrWhiteSpace(nextMatch[1])) ? '♪' : nextMatch[1];
-
-                sendRequest(artist, album, albumCover, track, currentLyric, previousLyric, nextLyric, progress, trackLength);
+            if (lastLyricIndex !== -2) { 
+                lastLyricIndex = -2;
+                sendWsRequest(artist, album, albumCover, track, '♪', '♪', currentLyrics[0][1], progress, trackLength);
             }
+            return;
         }
-    }, 200); // Using websockets so this is fine :)
 
-    //endregion Request section
-    
+        // Find the next lyric (cool!)
+        const currentIndex = currentLyrics.findLastIndex(item => item[0] <= progress);
+
+        if (currentIndex !== -1 && currentIndex !== lastLyricIndex) {
+            lastLyricIndex = currentIndex;
+
+            const match = currentLyrics[currentIndex];
+            const currentLyric = isEmptyOrWhiteSpace(match[1]) ? '♪' : match[1];
+            
+            const prevMatch = currentLyrics[currentIndex - 1];
+            const previousLyric = (!prevMatch || isEmptyOrWhiteSpace(prevMatch[1])) ? '♪' : prevMatch[1];
+
+            const nextMatch = currentLyrics[currentIndex + 1];
+            const nextLyric = (!nextMatch || isEmptyOrWhiteSpace(nextMatch[1])) ? '♪' : nextMatch[1];
+
+            sendWsRequest(artist, album, albumCover, track, currentLyric, previousLyric, nextLyric, progress, trackLength);
+        }
+    });
+    //endregion Progress listener
+
+    function sendWsRequest(artist, album, albumCover, track, currentLyric, previousLyric, nextLyric, progress, trackLength) {
+        const payload = {
+            type: "lyricUpdate",
+            ar: artist, al: album, ac: albumCover, t: track,
+            cl: currentLyric, pl: previousLyric, nl: nextLyric,
+            p: progress, tl: trackLength
+        };
+        ws.send(JSON.stringify(payload));
+    }
 })();
-//endregion Request section
 
-// Didn't want to type this twice so made it a function for ease :p
-async function sendRequest(artist, album, albumCover, track, currentLyric, previousLyric, nextLyric, progress, trackLength) {
-    await fetch(`http://127.0.0.1:5005/lyric?ar=${artist}&al=${album}&ac=${albumCover}&t=${track}&cl=${currentLyric}&pl=${previousLyric}&nl=${nextLyric}&p=${progress}&tl=${trackLength}`, {
-        mode: "no-cors"
-    }); // No-cors since we don't need a response
-}
-
+// This is for when lyrics don't have anything associated with them, like when its just an instrumental section in a song.
 function isEmptyOrWhiteSpace(str) {
     const safeStr = String(str || ''); 
     return !safeStr || safeStr.trim().length === 0;

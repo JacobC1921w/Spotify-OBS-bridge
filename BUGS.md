@@ -1,0 +1,2 @@
+1. Opening spotify before running the python script seems to break it, should be an easy fix
+2. Sometimes the websocket seems to lag a bit. It was a lot worse, but rewriting the codebase seemed to help a little.
