@@ -20,11 +20,11 @@ iwr -useb https://raw.githubusercontent.com/spicetify/cli/main/install.ps1 | iex
 ~~Make sure to select Yes when asked to install the marketplace.~~ Installing the marketplace is optional, depending on if you want to add themes or other extensions for spotify easily! Close this powershell window for now.
 
 ### 2. Downloading and applying the extension
-3. Download the repository as a zip file (here)[https://github.com/JacobC1921w/Spotify-OBS-bridge/archive/refs/heads/main.zip] (or clone it), extract it somewhere (doesn't matter where, just remember the location) and place the `SOBSB-ext.js` file into `%appdata%/spicetify/Extensions`, so it should look like this:
+3. Download the repository as a zip file [here](https://github.com/JacobC1921w/Spotify-OBS-bridge/archive/refs/heads/main.zip) (or clone it), extract it somewhere (doesn't matter where, just remember the location) and place the `SOBSB-ext.js` file into `%appdata%/spicetify/Extensions`, so it should look like this:
 
 ![Image of spicetify extension folder](https://github.com/JacobC1921w/Spotify-OBS-Bridge/blob/main/images/spicetifyext.png?raw=true)
 
-4. Install python3 by following the steps (here)[https://www.python.org/downloads/]. You'll know you've done it right when you open another powershell and type `python --version`, it should display information on your installation like this:
+4. Install python3 by following the steps [here](https://www.python.org/downloads/). You'll know you've done it right when you open another powershell and type `python --version`, it should display information on your installation like this:
 
 ![Image of working python installation](https://github.com/JacobC1921w/Spotify-OBS-Bridge/blob/main/images/pythonver.png?raw=true)
 
