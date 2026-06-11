@@ -75,6 +75,7 @@
                     if (config.showNextLyric) document.getElementById("nl").innerText = data.nl;
                     
                     if (config.showAlbumArt) {
+                        document.getElementById("cover").style.visibility = "shown";
                         const img = document.getElementById("cover");
                         if (img.src !== data.ac) img.src = data.ac;
                     } else {
