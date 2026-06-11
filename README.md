@@ -43,3 +43,6 @@ Spotify should restart.
 
 ### 4. Setting up OBS
 9. In OBS, Add a new broswer source but clicking the + in the bottom left of the sources window, and selection Browser. Name it whatever you want, and set the URL to `http://127.0.0.1:5005`, change whatever other settings you want, and when you hit OK, you'll see it appear in the scene. Resize and edit however you want.
+
+# NOTE
+Its kinda funky at the moment, you have to have the python script running first, then open spotify, play a new song, and it should start updating from there. I'll fix this in the future, but works after these steps.

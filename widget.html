@@ -34,30 +34,62 @@
         </div>
 
         <script>
-            // Connect to the Python WebSocket server
-            const ws = new WebSocket(`ws://${window.location.host}/ws`);
+            async function loadConfig() {
+                try {
+                    const response = await fetch("/config");
+                    if (!response.ok) throw new Error("Failed to read config file: Server error");
+                    
+                    const config = await response.json();
+                    return config;
+                } catch (error) {
+                    console.error("Failed to read config file:", error);
+                    return null;
+                }
+            }
 
-            ws.onopen = () => {
-                ws.send(JSON.stringify({ type: "registerListener" }));
-            };
-            
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
+            async function init() {
+                const config = await loadConfig();
                 
-                document.getElementById("track").innerText = data.t;
-                document.getElementById("artist").innerHTML = `${data.ar} <span class="album">| ${data.al}</span>`;
-                document.getElementById("cl").innerText = data.cl;
-                document.getElementById("pl").innerText = data.pl;
-                document.getElementById("nl").innerText = data.nl;
-                
-                const img = document.getElementById("cover");
-                if (img.src !== data.ac) img.src = data.ac;
-            };
+                if (!config) {
+                    console.error("Initialization aborted: Config could not be loaded.");
+                    return;
+                }
 
-            ws.onclose = () => {
-                console.log("WebSocket disconnected. Retrying in 2 seconds...");
-                setTimeout(() => { location.reload(); }, 2000);
-            };
+                // Connect to the Python WebSocket server
+                const ws = new WebSocket(`ws://${window.location.host}/ws`);
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify({ type: "registerListener" }));
+                };
+                
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    
+                    if (config.showSongTitle) document.getElementById("track").innerText = data.t;
+                    if (config.showArtist) document.getElementById("artist").innerText = data.ar;
+                    if (config.showAlbumName) {
+                        document.getElementById("artist").innerHTML += ` <span class="album">| ${data.al}</span>`
+                    }
+                    if (config.showCurrentLyric) document.getElementById("cl").innerText = data.cl;
+                    if (config.showPreviousLyric) document.getElementById("pl").innerText = data.pl;
+                    if (config.showNextLyric) document.getElementById("nl").innerText = data.nl;
+                    
+                    if (config.showAlbumArt) {
+                        const img = document.getElementById("cover");
+                        if (img.src !== data.ac) img.src = data.ac;
+                    } else {
+                        document.getElementById("cover").style.visibility = "hidden";
+                    }
+                };
+
+                ws.onclose = () => {
+                    console.log("WebSocket disconnected. Retrying in 2 seconds...");
+                    setTimeout(() => { location.reload(); }, 2000);
+                };
+            }
+
+            // Kick off the application
+            init();
         </script>
     </body>
 </html>

@@ -1,10 +1,10 @@
 #region Imports
 # I like to import individual components due to speed, although it makes the code a little less easier to read sometimes
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn import run
-from json import loads
+from json import loads, load
 #endregion Imports
 
 #region FastAPI setup
@@ -63,6 +63,12 @@ def overlayPage():
         # Any edits you want to make to the widget that displays in OBS can be done so by editing ./widget.html
         return widget.read()
 #endregion Widget rendering
+
+# Serve the config on an endpoint
+@api.get("/config", response_class=JSONResponse)
+def returnConfig():
+    with open("./config.json", 'r') as file:
+        return load(file)
 
 if __name__ == "__main__":
     run(api, host="127.0.0.1", port=5005) # So we can run uvicorn without typing the command everytime

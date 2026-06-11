@@ -1,0 +1,9 @@
+{
+    "showAlbumArt": true,
+    "showSongTitle": true,
+    "showArtist": true,
+    "showAlbumName": true,
+    "showPreviousLyric": true,
+    "showCurrentLyric": true,
+    "showNextLyric": true
+}
